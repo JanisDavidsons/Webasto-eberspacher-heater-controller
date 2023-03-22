@@ -13,6 +13,7 @@ private:
   int pin;
 public:
   static const int START_FAN_SPEED = 40;
+  static const int FULL_FAN_SPEED  = 95;
   int currentSpeed   = 0;
 
   CombustionFan(int pin, int targetSpeed = 0);

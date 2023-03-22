@@ -141,12 +141,19 @@ void DieselHeater::runProcedure()
   switch (timeSinceRunning)
   {
   case 1:
-    combustionFan->run(95, 1);
-    break;
-  
-  default:
+    int fuelIncrementRatio = 4; // how fast target value is reached
+    int FanIncrementRatio  = 6; // how fast target value is reached
+
+    combustionFan->run(CombustionFan::FULL_FAN_SPEED, FanIncrementRatio);
+    injectionPump->setFrequency(InjectionPump::THROTTLING_HIGH_FUEL, fuelIncrementRatio);
     break;
   }
+
+  //constantly monitor exhaust temp, if there is drop, flame out occured.
+  /**
+   * code here
+  */
+  
 }
 
 void DieselHeater::restartProcedure()
@@ -269,5 +276,8 @@ void DieselHeater::setTime()
 
   Seconds =  timeSinceRunning  % SECS_PER_MIN ;
   Minutes = (timeSinceRunning  / SECS_PER_MIN) % SECS_PER_MIN;
-  Hours   = (timeSinceRunning  % SECS_PER_DAY) / SECS_PER_HOUR;  
+  Hours   = (timeSinceRunning  % SECS_PER_DAY) / SECS_PER_HOUR; 
+
+  Serial.print(" | ");
+  Serial.print(timeSinceRunning);
 }

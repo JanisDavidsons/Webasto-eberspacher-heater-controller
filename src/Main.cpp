@@ -78,7 +78,7 @@ void setup()
   pinMode(buttonPin, INPUT);
   pinMode(lambda_pin, INPUT);
 
-  injectionPump.begin();
+  injectionPump.initilize();
 
   everySecondCallback();
   runTimeCallback();
@@ -87,6 +87,10 @@ void setup()
 void loop()
 {
   timer.tick();
+
+  /**
+   * code to test various functions wiht potenciometer as data input.
+  */
   // int potValue    = analogRead(exhaustTempPin);
   // float frequency = map(potValue, 0, 1023, 0.3, 40) / 10.0;
   // frequency       = max(injectionPump.getMinFrequency(), min(injectionPump.getMaxFrequency(), frequency)); // constrain frequency to the range
@@ -105,6 +109,8 @@ void everySecondCallback()
         dieselHeater.setState();
         dieselHeater.setTime();
 
+        injectionPump.tick(); // because injection pump operates from 0.5Hz to 4Hz, there is no need to update pump state more often than once a second
+
         char logData[55]          = "";
         char voltageStr[7]        = "";
         char coolantTmpStr[7]     = "";
@@ -116,12 +122,11 @@ void everySecondCallback()
         dtostrf(tempController.coolantTemp, 5, 2, coolantTmpStr);
         dtostrf(tempController.exhaustTemp, 5, 2, exhaustTmpStr);
         dtostrf(tempController.roomTemp, 5, 2, insideTmpStr);
-        dtostrf(injectionPump.injectionRatio, 4, 2, injectionRatioStr);
+        dtostrf(injectionPump.getCurrentFrequency(), 4, 2, injectionRatioStr);
         
         sprintf(
           logData,
-          "Co %s | Ex %s | In %s | f %s | %d", 
-          coolantTmpStr,
+          "Ex %s | In %s | f %s | %d", 
           exhaustTmpStr,
           insideTmpStr,
           injectionRatioStr,

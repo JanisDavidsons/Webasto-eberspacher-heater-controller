@@ -24,21 +24,38 @@ InjectionPump::InjectionPump(int pin, int pumpSize)
   }
 }
 
-void InjectionPump::begin() {
+void InjectionPump::initilize() {
   Timer1.initialize(pulseLength);
 }
 
-void InjectionPump::setFrequency(float frequency) {
+void InjectionPump::tick()
+{
+  if (this->currentFrequency < targetFrequency && incrementRatio != 0) // this allows to increment frequency slowly to target the value.
+  {
+    if ((step%incrementRatio) == 0)
+    {
+      this->currentFrequency += 0.1; // if frequency has to be incremented in steps, it is done by 0.1 Hz at each step
+      Timer1.setPeriod(1000000.0 / this->currentFrequency);
+      updateDutyCycle();
+    }
+    step++;
+  } else if (this->currentFrequency != targetFrequency) // else instant frequency change is requested
+  {
+    this->currentFrequency = targetFrequency;
+    Timer1.setPeriod(1000000.0 / this->currentFrequency);
+    updateDutyCycle();
+  }
+}
+
+void InjectionPump::setFrequency(float frequency, int incrementRatio) {
   if (frequency <= minFrequency || frequency > maxFrequency) {
     turnOff();
     return;
   }else{
     injectionOn = true;
   }
-
-  currentFrequency = frequency;
-  Timer1.setPeriod(1000000.0 / frequency);
-  updateDutyCycle();
+    this->targetFrequency = frequency;
+    this->incrementRatio  = incrementRatio;
 }
 
 void InjectionPump::updateDutyCycle() {
@@ -53,8 +70,8 @@ void InjectionPump::turnOff() {
   if (!injectionOn) {
     return;
   }
-  injectionOn    = false;
-  injectionRatio = 0;
+  injectionOn      = false;
+  targetFrequency = 0;
   Timer1.stop();
   Timer1.pwm(pin, 0);
 }
@@ -62,21 +79,26 @@ void InjectionPump::turnOff() {
 
 void InjectionPump::setPrimeRatio(double coolantTemp) {  //sets initial prime ratio
   if(coolantTemp <= primeLowTemp){                  
-    injectionRatio = primeLowTempFuelrate;              //if coolant temperature is less than a certain value use primeLowTempFuelrate
+    targetFrequency = primeLowTempFuelrate;              //if coolant temperature is less than a certain value use primeLowTempFuelrate
   }
 
   if(coolantTemp >= primeHighTemp){                     
-    injectionRatio = primeHighTempFuelrate;            //if coolant temperature is more than a certain value, use primeHighTempFuelrate
+    targetFrequency = primeHighTempFuelrate;            //if coolant temperature is more than a certain value, use primeHighTempFuelrate
   }
 
   float steps     = primeHighTemp-primeLowTemp;
   float fuelSteps = (primeLowTempFuelrate-primeHighTempFuelrate)/steps;  
-  injectionRatio  = primeLowTempFuelrate-((coolantTemp-primeLowTemp)*fuelSteps);
-  setFrequency(injectionRatio);
+  targetFrequency  = primeLowTempFuelrate-((coolantTemp-primeLowTemp)*fuelSteps);
+  setFrequency(targetFrequency);
 }
 
 void InjectionPump::setInitInjectionRatio(double tempInit)
 {
-  injectionRatio = tempInit < startFuelThreshold ? startFuelCold : startFuelWarm;  //initial ratio depends on whether coolant temperature is below threshold, in such a case- it would use cold start fuel or warm start fuel.
-  setFrequency(injectionRatio);
+  targetFrequency = tempInit < startFuelThreshold ? startFuelCold : startFuelWarm;  //initial ratio depends on whether coolant temperature is below threshold, in such a case- it would use cold start fuel or warm start fuel.
+  setFrequency(targetFrequency);
+}
+
+float InjectionPump::getCurrentFrequency()
+{
+  return currentFrequency;
 }
